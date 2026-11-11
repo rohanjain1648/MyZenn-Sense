@@ -1,0 +1,70 @@
+@import './myzenn/theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* One colour per body signal, used identically in every tool. */
+    --breath: 172 70% 52%;
+    --heart: 351 92% 72%;
+    --bell: 42 92% 68%;
+    --smile: 22 95% 72%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: radial-gradient(ellipse 70% 45% at 50% -8%, hsl(180 80% 50% / 0.07), transparent 65%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Outfit', system-ui, sans-serif;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mirror {
+    transform: scaleX(-1);
+  }
+}

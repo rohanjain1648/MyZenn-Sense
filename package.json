@@ -1,0 +1,45 @@
+{
+  "name": "myzenn-sense",
+  "productName": "MyZenn Sense",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Three MyZenn Sanctuary tools that listen to your body through your camera, powered by the Presage SmartSpectra SDK.",
+  "author": "Rohan Jain",
+  "license": "MIT",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "app": "npm run build && node scripts/launch-electron.mjs",
+    "app:dev": "node scripts/launch-electron.mjs --dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "smoke": "npm run build && node scripts/launch-electron.mjs --smoke"
+  },
+  "dependencies": {
+    "@fontsource/dm-sans": "^5.0.0",
+    "@fontsource/outfit": "^5.0.0",
+    "@smartspectra/node-sdk": "3.5.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.26.2",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "autoprefixer": "^10.4.21",
+    "electron": "43.8.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19",
+    "vitest": "^2.1.9"
+  }
+}
