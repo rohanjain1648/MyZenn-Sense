@@ -14,19 +14,67 @@ processed on your computer.
 
 ## How it responds to human signals
 
+### Architecture
+
+```mermaid
+flowchart TB
+  cam["Webcam<br/>(video only, no microphone)"]
+
+  subgraph R["Electron renderer: sandboxed, contextIsolation on"]
+    direction TB
+    gate["Consent screen + Start button<br/>Camera on indicator"]
+    src["PresageSource<br/>src/sense/sources/presage.ts<br/>requested metrics, events, decodeMetrics"]
+    rsdk["SmartSpectraSDK (renderer)<br/>@smartspectra/node-sdk/renderer<br/>frame pump, enableTelemetry: false"]
+    eng["SenseEngine<br/>src/sense/engine.ts<br/>normalize, warm-up windows, 60 s chest trace"]
+    math["signalMath + guidance<br/>breath detection, rhythm match,<br/>validation code to plain sentence"]
+    subgraph T["Tools"]
+      direction LR
+      breath["MyBreath Live<br/>adaptive pacer, voice cues,<br/>rhythm match, AI reflection"]
+      song["Heartsong<br/>body to music<br/>(Web Audio)"]
+      stage["MyStage Pulse<br/>activation vs own baseline,<br/>breath-counted pause"]
+    end
+  end
+
+  subgraph P["Preload scripts"]
+    direction TB
+    pre1["Presage preload<br/>window.__smartspectraBridge"]
+    pre2["app-preload.cjs<br/>window.myzennSense: config, key, AI partner"]
+  end
+
+  subgraph M["Electron main process: electron/main.cjs"]
+    direction TB
+    ipc["bindSmartSpectraIpc(win)<br/>MessagePort per session"]
+    native["SmartSpectra native runtime<br/>on-device signal processing"]
+    ready["checkDeviceReadiness()<br/>Check my setup"]
+    llm["LLM router: electron/llm.cjs<br/>Groq first, OpenAI fallback"]
+    keys[".env keys stay here"]
+  end
+
+  subgraph X["Outside this computer"]
+    direction TB
+    presage["Presage cloud<br/>API key check + LLM Insights<br/>(derived numbers only, never video)"]
+    ai["Groq / OpenAI<br/>optional, off by default<br/>(typed text + one word)"]
+  end
+
+  cam --> rsdk
+  gate --> src
+  src --> rsdk
+  rsdk -- "frames" --> pre1 --> ipc --> native
+  native -- "metrics protobuf, validationStatus,<br/>processingStatus, insight" --> ipc
+  ipc --> pre1 --> rsdk
+  rsdk -- "events" --> src --> eng
+  eng --> math
+  eng --> breath & song & stage
+  math --> breath & stage
+  pre2 <--> keys
+  stage -- "rehearsal text" --> pre2 --> llm --> ai
+  native -. "key check, LLM Insights" .-> presage
+  ready -.-> cam
 ```
- Camera ─► Presage SmartSpectra SDK (renderer + main process, on-device)
-                 │  metrics protobuf: breathing rate + chest trace, pulse, HRV, blinking, expressions
-                 │  validationStatus: framing / lighting guidance
-                 ▼
-          SenseEngine (src/sense)  ── normalizes, keeps a 60 s chest trace, warm-up aware
-                 │
-   ┌─────────────┼──────────────────────────┐
-   ▼             ▼                          ▼
- MyBreath Live   Heartsong                  MyStage Pulse
- adaptive pacer  body to music mapping      activation vs your own baseline,
- + rhythm match  (Web Audio)                spike detector, breath-counted pause
-```
+
+Video frames move from the camera through the renderer SDK, over a `MessagePort`, to the native SmartSpectra runtime in the main
+process, and never leave the computer. Only derived results come back to the page. Dotted lines are network calls: the SDK's
+key check and LLM Insights (while heart signals are on) to Presage, and the optional AI rehearsal partner to Groq or OpenAI.
 
 - **Chest trace, not just rates.** The SDK's breathing rate is a 30-second average. The app also detects individual breaths in the chest trace (`src/sense/signalMath.ts`), so the pacer, Heartsong's melody and MyStage's three-breath pause react within seconds.
 - **Rhythm match.** It cross-correlates your chest movement with the guide over small time lags and both polarities, then shows "In rhythm %" (`rhythmMatch`).
