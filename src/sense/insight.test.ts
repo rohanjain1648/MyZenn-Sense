@@ -35,6 +35,7 @@ describe('reflectionPrompt', () => {
     const prompt = reflectionPrompt({ minutes: 4.4, breathingBefore: 14.2, breathingAfter: 6.8 });
     expect(prompt).toContain('14 to 7 breaths per minute');
     expect(prompt).toMatch(/no medical advice/);
+    expect(prompt).toMatch(/do not quote any numbers/);
     expect(new TextEncoder().encode(prompt).length).toBeLessThan(2048);
   });
 });

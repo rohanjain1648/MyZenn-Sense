@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { CameraRail } from '@/components/CameraRail';
 import { Button } from '@/components/Button';
 import { SessionNotices } from '@/components/Notice';
 import { PathChart } from '@/components/PathChart';
 import { StartGate } from '@/components/StartGate';
 import { recordSession } from '@/privacy/history';
-import { getSettings } from '@/privacy/settings';
+import { getSettings, updateSettings, useSettings } from '@/privacy/settings';
 import { reflectionPrompt } from '@/sense/insight';
 import { engine, requestReflection, simulator, stopSession, useSenseState, type ReflectionOutcome } from '@/sense/session';
-import { instantBreathingRate, mean, rhythmMatch } from '@/sense/signalMath';
+import { instantBreathingRate, mean, median, rhythmMatch } from '@/sense/signalMath';
 import type { HrvReading, TracePoint } from '@/sense/types';
 import { BreathCanvas } from './BreathCanvas';
 import { createPacer, updatePacer, type PacerState } from './pacer';
+import { speakCue, stopVoice } from './voice';
 
 type Stage = 'intro' | 'tuning' | 'guiding' | 'done';
 
@@ -70,6 +72,7 @@ export function BreathLive() {
   const signRef = useRef<1 | -1>(1);
   const baselineRef = useRef<Baseline | null>(null);
   const measuredLog = useRef<TracePoint[]>([]);
+  const recentRaw = useRef<number[]>([]);
   const syncLog = useRef<number[]>([]);
   // First and latest stable HRV readings (RMSSD, SDNN, Baevsky), compared
   // only with the user's own start, as Presage's HRV model card advises.
@@ -78,6 +81,26 @@ export function BreathLive() {
   const guideStartedAt = useRef(0);
   const stageRef = useRef(stage);
   stageRef.current = stage;
+
+  const { voiceGuide } = useSettings();
+  const voiceRef = useRef(voiceGuide);
+  voiceRef.current = voiceGuide;
+
+  // The canvas flips the phase at the exact moment the circle turns, so the
+  // spoken cue stays in step with what the user sees.
+  const onPhaseChange = useCallback((inh: boolean) => {
+    setInhaling(inh);
+    if (voiceRef.current && stageRef.current === 'guiding') speakCue(inh ? 'in' : 'out');
+  }, []);
+
+  useEffect(() => {
+    if (stage === 'tuning' && voiceRef.current) speakCue('settle');
+    if (stage === 'done' || stage === 'intro') stopVoice();
+  }, [stage]);
+
+  useEffect(() => {
+    if (!voiceGuide) stopVoice();
+  }, [voiceGuide]);
 
   const live = s.phase === 'running' || s.phase === 'starting';
 
@@ -171,6 +194,7 @@ export function BreathLive() {
     phaseRef.current = 0;
     guideHistory.current = [];
     measuredLog.current = [];
+    recentRaw.current = [];
     syncLog.current = [];
     firstHrv.current = s.hrv?.stable ? s.hrv : null;
     lastHrv.current = firstHrv.current;
@@ -195,13 +219,20 @@ export function BreathLive() {
       const measured = state.talking
         ? null
         : (instantBreathingRate(chest) ?? (state.breathingRate?.stable ? state.breathingRate.value : null));
-      if (measured !== null) measuredLog.current.push({ t: now, v: measured });
-      setMeasuredPace(measured);
+      // Median of the last three readings: one jolt (e.g. reaching for the
+      // mouse) can't spike the guide's decision, the readout or the chart.
+      let smoothed: number | null = null;
+      if (measured !== null) {
+        recentRaw.current = [...recentRaw.current.slice(-2), measured];
+        smoothed = median(recentRaw.current);
+        measuredLog.current.push({ t: now, v: smoothed });
+      }
+      setMeasuredPace(smoothed);
       if (state.hrv?.stable) {
         firstHrv.current ??= state.hrv;
         lastHrv.current = state.hrv;
       }
-      const next = updatePacer(current, measured, now);
+      const next = updatePacer(current, smoothed, now);
       pacerRef.current = next;
       setPacer(next);
 
@@ -247,6 +278,7 @@ export function BreathLive() {
   // Leaving the screen releases the camera.
   useEffect(
     () => () => {
+      stopVoice();
       simulator()?.setFollowTarget(null);
       void stopSession();
     },
@@ -307,7 +339,7 @@ export function BreathLive() {
             phaseRef={phaseRef}
             guideHistory={guideHistory}
             signRef={signRef}
-            onPhaseChange={setInhaling}
+            onPhaseChange={onPhaseChange}
           />
         </div>
         <div className="pointer-events-none relative mt-auto mb-auto text-center" aria-live="polite">
@@ -350,6 +382,17 @@ export function BreathLive() {
                     ? 'Easing back a little.'
                     : 'Slows down when you keep up.'}
               </span>
+              <Button
+                variant="quiet"
+                size="sm"
+                aria-pressed={voiceGuide}
+                aria-label={voiceGuide ? 'Turn spoken cues off' : 'Turn spoken cues on'}
+                title={voiceGuide ? 'Spoken cues on' : 'Spoken cues off'}
+                onClick={() => updateSettings({ voiceGuide: !voiceGuide })}
+              >
+                {voiceGuide ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
+                Voice
+              </Button>
               <Button variant="quiet" size="sm" onClick={() => void finish()}>
                 Finish
               </Button>

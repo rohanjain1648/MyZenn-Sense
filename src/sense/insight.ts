@@ -113,10 +113,13 @@ export function reflectionPrompt(ctx: { minutes: number; breathingBefore: number
     ctx.breathingAfter !== null
       ? `easing from about ${ctx.breathingBefore.toFixed(0)} to ${ctx.breathingAfter.toFixed(0)} breaths per minute`
       : `starting at about ${ctx.breathingBefore.toFixed(0)} breaths per minute`;
+  // No numbers in the reply: the app already shows the measured values, and a
+  // quoted figure from the model's buffer could contradict them on screen.
   return (
     `I just finished a ${Math.max(1, Math.round(ctx.minutes))}-minute guided slow-breathing exercise in a wellness app, ${pace}. ` +
     'In two or three warm, encouraging sentences, reflect on how my pulse, heart-rate variability and breathing rate look ' +
-    'during this calm practice. Keep it to general wellness: no medical advice, no diagnosis, and no mention of health conditions.'
+    'during this calm practice. Describe changes in words and do not quote any numbers. ' +
+    'Keep it to general wellness: no medical advice, no diagnosis, and no mention of health conditions.'
   );
 }
 

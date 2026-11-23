@@ -205,6 +205,14 @@ function createWindow() {
 
   bindSmartSpectraIpc(win);
 
+  // Echo the page's "[sense] ..." lifecycle lines (Presage status names and
+  // error codes, no health readings) to the terminal, next to the SDK's own
+  // "[smartspectra/main]" lines, so a session can be followed from one place.
+  win.webContents.on('console-message', (details) => {
+    const message = details && details.message;
+    if (typeof message === 'string' && message.startsWith('[sense]')) console.log(message);
+  });
+
   // Never open popups or navigate away: remote content must not inherit the camera grant.
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event, url) => {

@@ -223,7 +223,14 @@ export class PresageSource implements SignalSource {
     this.sdk = sdk;
     sink.capabilities({ cardio: options.cardio, face: options.face, eda: options.eda });
 
-    sdk.on('processingStatus', (status: number) => current() && sink.phase(STATUS[status as keyof typeof STATUS] ?? 'starting'));
+    // Lifecycle lines go to the terminal (see main.cjs) next to the SDK's own
+    // "[smartspectra/main] dropped frame" warnings, so the two can be lined up.
+    // Status names and error codes only, never any health reading.
+    console.info(`[sense] Presage launch #${id}: metrics ${requested.join(',')}`);
+    sdk.on('processingStatus', (status: number) => {
+      console.info(`[sense] Presage launch #${id} status ${status} (${STATUS[status as keyof typeof STATUS] ?? 'unknown'})`);
+      if (current()) sink.phase(STATUS[status as keyof typeof STATUS] ?? 'starting');
+    });
     sdk.on('validationStatus', (code: number, _ts: number, hint: string) => current() && sink.guidance(code, hint));
     sdk.on('metrics', (buf: Uint8Array) => {
       if (!current()) return;
@@ -234,6 +241,7 @@ export class PresageSource implements SignalSource {
       }
     });
     sdk.on('error', (code: number, message: string, retryable: boolean) => {
+      console.warn(`[sense] Presage launch #${id} error ${code} (retryable: ${retryable}): ${message}`);
       if (!current()) return;
       // A refused signal can also surface after start(); relaunch without it.
       if (DENIED_CODES.has(code) && (this.options.eda || this.options.cardio) && !this.relaunching) {
@@ -270,6 +278,7 @@ export class PresageSource implements SignalSource {
     }
 
     await sdk.start();
+    console.info(`[sense] Presage launch #${id}: start() resolved, frames flowing`);
   }
 
   async requestInsight(prompt: string): Promise<number> {
@@ -283,6 +292,7 @@ export class PresageSource implements SignalSource {
     this.sdk = null;
     this.launchId++;
     if (!sdk) return;
+    console.info('[sense] Presage stopping');
     try {
       await sdk.stop();
     } catch {

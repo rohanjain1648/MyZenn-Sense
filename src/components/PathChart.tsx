@@ -53,7 +53,8 @@ export function PathChart({ series, height = 120, unit }: { series: Series[]; he
           {minutes.toFixed(1)} min
         </text>
         {series.map((s) =>
-          s.points.length > 1 ? (
+          // A step series needs only one point (a guide that never changed is a flat line).
+          s.points.length > 1 || (s.step && s.points.length === 1) ? (
             <path
               key={s.label}
               d={path(s)}

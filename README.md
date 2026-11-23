@@ -1,6 +1,6 @@
 # MyZenn Sense
 
-Three [MyZenn](https://myzenn.com) Sanctuary tools that listen to your body through your camera, powered by the
+Three [MyZenn] Sanctuary tools that listen to your body through your camera, powered by the
 [Presage SmartSpectra SDK](https://smartspectra.presagetech.com/docs). It's a desktop app (Electron), and every signal is
 processed on your computer.
 

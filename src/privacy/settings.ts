@@ -35,6 +35,8 @@ export interface Settings {
   sessionCapMin: number;
   /** Show the mirrored self-view while measuring. */
   showPreview: boolean;
+  /** MyBreath Live says "breathe in" / "breathe out" with an offline system voice. */
+  voiceGuide: boolean;
   /** Seconds of live Presage measurement used on this device (credit estimate). */
   liveSecondsUsed: number;
 }
@@ -53,6 +55,7 @@ const DEFAULTS: Settings = {
   simulate: false,
   sessionCapMin: 5,
   showPreview: true,
+  voiceGuide: true,
   liveSecondsUsed: 0,
 };
 

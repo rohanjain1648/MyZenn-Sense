@@ -111,6 +111,12 @@ export function Privacy() {
           onChange={(v) => updateSettings({ aiPartner: v })}
         />
         <Toggle
+          label="Spoken breathing cues in MyBreath Live"
+          detail="Says “breathe in” and “breathe out” with your computer's own offline voice. If there is none, a soft tone marks each breath."
+          checked={settings.voiceGuide}
+          onChange={(v) => updateSettings({ voiceGuide: v })}
+        />
+        <Toggle
           label="Show my camera self-view"
           detail="Hiding it does not stop measuring. Use Stop camera for that."
           checked={settings.showPreview}
